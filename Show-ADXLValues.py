@@ -17,7 +17,7 @@ setDataFormat = [0x71,0x02]
 # Set to 0x08: Measurement mode.
 setPowerCtl = [0x6D,0x08]
 
-# This the DATAX0 register (0x32) OR'd with Read bit (0x80)
+# This is the DATAX0 register (0x32) OR'd with Read bit (0x80)
 # and Multiple Bytes bit (0x40). It is followed by 6 0x00 values
 # to read 6 bytes starting from DATAX0. When transferred, this 
 # returns 7 bytes: NULL (0x00), DATAX0 (0x32), DATAX1 (0x33), 
