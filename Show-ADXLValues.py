@@ -1,12 +1,16 @@
+# Prints the values from an ADXL345 accelerometer.
+
 from __future__ import print_function # for print(end="\r") 
 from periphery import SPI # for SPI functions
-# import sys # For sys ouput function
-# import time # for delays
 
+# Creates SPI object with the following parameters:
+    # - SPI device as "/dev/spidev1.0"
+    # - Clock mode 3 (i.e., sets clock polarity 1, clock phase 1)
+    # - Clock frequency set to 5 MHz
 spi = SPI("/dev/spidev1.0",3,5000000)
 
 # Address 0x31 OR'd with 0x40 MB bit
-# Set 0x02: 8g range
+# Set to 0x02: 8g range
 setDataFormat = [0x71,0x02]
 
 # Address 0x2D OR'd with 0x40 MB bit
