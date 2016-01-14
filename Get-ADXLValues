@@ -1,0 +1,55 @@
+
+
+from __future__ import print_function # for print(end="\r") 
+from periphery import SPI # for SPI functions
+# import sys # For sys ouput function
+# import time # for delays
+
+spi = SPI("/dev/spidev1.0",3,5000000)
+
+# Address 0x31 OR'd with 0x40 MB bit
+setDataFormat = [0x71,0x02]
+
+# Address 0x2D OR'd with 0x40 MB bit
+setPowerCtl = [0x6D,0x08]
+
+# These are the register bits (0x32, 0x33), 
+# OR'd with Read bit (0x80)
+# and Multiple Bytes bit (0x40).
+#dataX0 = [0xF2,0xB3]
+dataX0 = [0xF2,0x00,0x00,0x00,0x00,0x00,0x00]
+
+print ("\n Setting Data Format... \n")
+spi.transfer(setDataFormat)
+
+print ("\n Setting Power Control... \n")
+spi.transfer(setPowerCtl)
+
+
+def calcValue (lsb, msb):
+    if msb == 255:
+        trueValue = -256 + lsb
+    else:
+        trueValue = lsb
+    return trueValue
+
+# i = 0
+print (" Accelerometer values:")
+# while i < 3:
+while True:
+    # print ("\n Transferring data...")
+    value = spi.transfer(dataX0)
+    # print (str(value))
+    trueX = calcValue(value[1],value[2])
+    trueY = calcValue(value[3],value[4])
+    trueZ = calcValue(value[5],value[6])
+    print ("X:\t" + str(trueX).zfill(4) + "\tY:\t" + str(trueY).zfill(4) + "\tZ:\t" + str(trueZ).zfill(4), end="\r")
+    # print (value,end="\r")
+    # sys.stdout.write("\033[F")
+    # sys.stdout.write("\033[K")
+    # time.sleep(1)
+    # i = i + 1
+
+spi.close
+
+print ("Done!")
