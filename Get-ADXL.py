@@ -6,8 +6,10 @@
 
 from __future__ import print_function # for print(end="\r") 
 from periphery import SPI # for SPI functions
-import time #
-import json
+import time # for timestamp and sleep functions.
+import json # for converting data array to JSON.
+from bbio import * # for BeagleBone Black pin functions.
+
 
 # Initialize SPI communication with the ADXL345.
 def initiateADXL345():
@@ -88,7 +90,7 @@ def getData(adxl):
     
     # Contains data array [{"time":timestamp,"x":xValue,"y":yValue,"z":zValue}]
     return axisValues
-
+    
 
 # This is the DATAX0 register (0x32) OR'd with Read bit (0x80)
 # and Multiple Bytes bit (0x40). It is followed by 6 0x00 values
@@ -115,52 +117,71 @@ data = []
 # Initialize counter.
 i = 0
 
+# Set up pin values and properties.
+switchPin = GPIO1_28 
+ledPin = GPIO1_16
+pinMode(ledPin, OUTPUT)
+pinMode(switchPin, INPUT, PULLUP)
+
+
 # Main loop.
 while True:
     
-    # Add to data array 
-    data.extend(getData(spi))
-    
-    # Ingress cycle
-    if i < sampleSize:              
+    # If switch is pressed, record data:
+    if digitalRead(switchPin) == 0:
         
-        # Increment counter
-        i = i + 1
+        # Turn on LED.
+        digitalWrite(ledPin,HIGH)
         
-        # Delay sample
-        time.sleep(sampleRate)
-    
-    # Egress cycle
-    else:
+        # Add to data array 
+        data.extend(getData(spi))
         
-        # Reset counter.
-        i = 0
+        # Ingress cycle
+        if i < sampleSize:              
+            
+            # Increment counter
+            i = i + 1
+            
+            # Delay sample
+            time.sleep(sampleRate)
         
-        # Record start time.
-        timeStart = time.time()
-        
-        # Open file object with name format "ADXL_timestamp.txt.
-        file = open((directory + "ADXL_" + "%.0f" % (timeStart*100) + ".txt"),'wb')
-        
-        # Convert to string and format to one object per line.
-        # file.write(str(data).strip("[").strip("]").replace("}, {","}\n{"))
-        file.write(json.dumps(data) + "\n")
-        # file.write(json.dumps(data).strip("[").replace("]","\n"))
-
-        # Close file.
-        file.close()
-        
-        # Reset data array.
-        data = []
-        
-        # Define how much time it took to write the file.
-        timeDelta = time.time() - timeStart
-        
-        # If less than sample rate, wait remaining time until next sample. Print
-        # how much the egress cycle was over or under the sample rate. Print statements
-        # are for debugging cycle times.
-        if timeDelta < sampleRate:
-            time.sleep(sampleRate - timeDelta)
-            print ("Under by " + str(sampleRate - timeDelta))
+        # Egress cycle
         else:
-            print ("Over by " + str(timeDelta - sampleRate))
+            
+            # Reset counter.
+            i = 0
+            
+            # Record start time.
+            timeStart = time.time()
+            
+            # Open file object with name format "ADXL_timestamp.txt.
+            file = open((directory + "ADXL_" + "%.0f" % (timeStart*100) + ".txt"),'wb')
+            
+            # Convert to string and format to one object per line.
+            # file.write(str(data).strip("[").strip("]").replace("}, {","}\n{"))
+            file.write(json.dumps(data) + "\n")
+            # file.write(json.dumps(data).strip("[").replace("]","\n"))
+    
+            # Close file.
+            file.close()
+            
+            # Reset data array.
+            data = []
+            
+            # Define how much time it took to write the file.
+            timeDelta = time.time() - timeStart
+            
+            # If less than sample rate, wait remaining time until next sample. Print
+            # how much the egress cycle was over or under the sample rate. Print statements
+            # are for debugging cycle times.
+            if timeDelta < sampleRate:
+                time.sleep(sampleRate - timeDelta)
+            #     print ("Under by " + str(sampleRate - timeDelta))
+            # else:
+            #     print ("Over by " + str(timeDelta - sampleRate))
+    
+    # Otherwise, if switch is not pressed, wait 1 second and check again.
+    else:
+        digitalWrite(ledPin,LOW)
+        # print ("Waiting...")
+        time.sleep(1)
