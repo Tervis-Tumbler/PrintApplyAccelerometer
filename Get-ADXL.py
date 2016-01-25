@@ -118,8 +118,8 @@ data = []
 i = 0
 
 # Set up pin values and properties.
-switchPin = GPIO1_28 
-ledPin = GPIO1_16
+switchPin = GPIO1_28    # pin P9.12
+ledPin = GPIO1_16       # pin P9.15
 pinMode(ledPin, OUTPUT)
 pinMode(switchPin, INPUT, PULLUP)
 
