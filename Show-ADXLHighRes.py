@@ -17,28 +17,24 @@ def initiateADXL345():
     # Creates SPI object with the following parameters:
         # - SPI device as "/dev/spidev1.0"
         # - Clock mode 3 (i.e., sets clock polarity 1, clock phase 1)
-        # - Clock frequency set to 400KHz
-    spi = SPI("/dev/spidev1.0",3,400000)
+        # - Clock frequency set to 5 MHz
+    spi = SPI("/dev/spidev1.0",3,5000000)
     
     # Address 0x31 OR'd with 0x40 MB bit.
-    # Set to 0x08: 16g Full (13-bit) Resolution - 4mg/LSB.
+    # Set to 0x08: Full Resolution - 4mg/LSB.
     setDataFormat = [0x71,0x0F]
     
     # Address 0x2D OR'd with 0x40 MB bit.
     # Set to 0x08: Measurement mode.
     setPowerCtl = [0x6D,0x08]
     
-    # Address 0x2C OR'd with 0x40 MB bit.
-    # Set to 0x0D: 800 Hz Output Data Rate    
-    setDataRate = [0x6C,0x0D]
-    
-    # Transfer settings to ADXL345.
+    # print ("\n Setting Data Format... \n")
     spi.transfer(setDataFormat)
+    
+    # print ("\n Setting Power Control... \n")
     spi.transfer(setPowerCtl)
-    spi.transfer(setDataRate)
-    
     return spi
-    
+
 
 # Parse data from accelerometer.
 def combineBytes (lsb, msb, bits, offset):
@@ -106,11 +102,11 @@ def getData(adxl):
 # DATAY0 (0x34), DATAY1 (0x35), DATAZ0 (0x36), and DATAZ1 (0x37).
 dataX0 = [0xF2,0x00,0x00,0x00,0x00,0x00,0x00]
 
-# Directory for JSON files
-directory = "/media/card/"
-
 # Time between samples.
-sampleRate = .005
+sampleRate = .010
+
+# Number of samples to take before dumping to disk.
+sampleSize = 50
 
 # Initialize SPI object.
 spi = initiateADXL345()
@@ -118,68 +114,11 @@ spi = initiateADXL345()
 # Initialize array.
 data = []  
 
-# Set up pin values and properties.
-switchPin = GPIO1_28    # pin P9.12
-ledPin = GPIO1_16       # pin P9.15
-pinMode(ledPin, OUTPUT)
-pinMode(switchPin, INPUT, PULLUP)
+# Initialize counter.
+i = 0
 
-toggle = 1
-
-# Main loop.
+print (" Accelerometer values:")
 while True:
-    
-    # If switch is pressed, record data:
-    if ((digitalRead(switchPin) == 0) & (toggle == 1)):
-        
-        # Turn on LED.
-        digitalWrite(ledPin,HIGH)
-        
-        # Add to data array 
-        data.extend(getData(spi))
-        
-        # Wait for sample rate.
-        time.sleep(sampleRate)
-        
-    # Egress cycle
-    elif ((digitalRead(switchPin) == 1) & (toggle == 1)):
-        
-        # Record start time.
-        timeStart = time.time()
-        
-        # Open file object with name format "ADXL_timestamp.txt.
-        file = open((directory + "ADXL_" + "%.0f" % (timeStart*100) + ".txt"),'wb')
-        
-        # Convert to string and format to one object per line.
-        file.write(json.dumps(data) + "\n")
-
-        # Close file.
-        file.close()
-        
-        # Reset data array.
-        data = []
-        
-        # Set toggle to 0.
-        toggle = 0
-        
-        # Confirmation flash.
-        digitalWrite(ledPin,LOW)
-        time.sleep(0.3)
-        digitalWrite(ledPin,HIGH)
-        time.sleep(0.3)
-        digitalWrite(ledPin,LOW)
-        time.sleep(0.3)
-        digitalWrite(ledPin,HIGH)
-        time.sleep(0.3)
-        digitalWrite(ledPin,LOW)
-
-    
-    # Reset toggle if 0 and button is pressed.
-    elif ((digitalRead(switchPin) == 0) & (toggle == 0)):
-        toggle = 1
-    
-    # Otherwise, if switch is not pressed, wait 1 second and check again.
-    else:
-        digitalWrite(ledPin,LOW)
-        # print ("Waiting...")
-        time.sleep(1)
+    data = getData(spi)
+    print ("X:\t" + str(data[0]['x']).zfill(6) + "\tY:\t" + str(data[0]['y']).zfill(6) + "\tZ:\t" + str(data[0]['z']).zfill(6), end="\r")
+    time.sleep(.01)
